@@ -63,7 +63,7 @@ Plugins/*/Intermediate/*
 DerivedDataCache/*
 
 # Do not commit art that can be downloaded from market place
-Content/ExampleContent
+Content/AnimStarterPack
 
 # Others
 .ignore
