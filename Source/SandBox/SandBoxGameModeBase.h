@@ -7,7 +7,7 @@
 #include "SandBoxGameModeBase.generated.h"
 
 /**
- * 
+ * Sandbox game mode
  */
 UCLASS()
 class SANDBOX_API ASandBoxGameModeBase : public AGameModeBase

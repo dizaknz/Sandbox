@@ -3,6 +3,11 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "EnhancedInput/Public/InputMappingContext.h"
+#include "EnhancedInput/Public/EnhancedInputSubsystems.h"
+#include "EnhancedInput/Public/InputActionValue.h"
+#include "EnhancedInput/Public/EnhancedInputComponent.h"
+#include "InputActionData.h"
 
 ASBPlayerCharacter::ASBPlayerCharacter()
 {
@@ -19,17 +24,42 @@ ASBPlayerCharacter::ASBPlayerCharacter()
 	// attach camera to spring arm
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraCompent"));
 	CameraComponent->SetupAttachment(SpringArmComponent, USpringArmComponent::SocketName);
+	CameraComponent->bUsePawnControlRotation = false;
 
-	// character movement component
+	// do not rotate when the controller rotates
+	bUseControllerRotationPitch = false;
+	bUseControllerRotationYaw = false;
+	bUseControllerRotationRoll = false;
+
+	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
+
+	// character movement component defaults
 	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
 	GetCharacterMovement()->bUseControllerDesiredRotation = true;
 	GetCharacterMovement()->bIgnoreBaseRotation = true;
+	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
+	GetCharacterMovement()->NavAgentProps.bCanFly = true;
+	GetCharacterMovement()->NavAgentProps.bCanSwim = true;
 
-	// disable if not needed
-	PrimaryActorTick.bCanEverTick = true;
+	GetCharacterMovement()->AirControl = 0.35f;
+	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
+	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
+
+	//PrimaryActorTick.bCanEverTick = true;
 
 	SprintSpeed = 1200.0f;
 	WalkSpeed = 600.0f;
+	JumpSpeed = 100.0f;
+}
+
+void ASBPlayerCharacter::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	GetCharacterMovement()->JumpZVelocity = JumpSpeed;
+
 }
 
 void ASBPlayerCharacter::BeginPlay()
@@ -38,80 +68,106 @@ void ASBPlayerCharacter::BeginPlay()
 	
 }
 
-void ASBPlayerCharacter::MoveForward(float AxisValue)
+void ASBPlayerCharacter::Move(const FInputActionValue& Value)
 {
-	if ((Controller == nullptr) || (AxisValue == -0.0f))
+	if (Controller == nullptr)
 	{
-		// no movement allowed
 		return;
 	}
+	const FVector2D MoveValue = Value.Get<FVector2D>();
+	const FRotator MovementRotation(0, Controller->GetControlRotation().Yaw, 0);
 
-	// forward
-	const FRotator Rotation = Controller->GetControlRotation();
-	const FRotator YawRotation(0, Rotation.Yaw, 0);
+	// Forward/Backward direction
+	if (MoveValue.Y != 0.f)
+	{
+		const FVector Direction = MovementRotation.RotateVector(FVector::ForwardVector);
+		AddMovementInput(Direction, MoveValue.Y);
+	}
 
-	// forward vector
-	const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-	AddMovementInput(Direction, AxisValue);
+	// Right/Left direction
+	if (MoveValue.X != 0.f)
+	{
+		const FVector Direction = MovementRotation.RotateVector(FVector::RightVector);
+		AddMovementInput(Direction, MoveValue.X);
+	}
 }
 
-void ASBPlayerCharacter::MoveRight(float AxisValue)
+void ASBPlayerCharacter::Look(const FInputActionValue& Value)
 {
-	if ((Controller == nullptr) || (AxisValue == -0.0f))
+	if (Controller == nullptr)
 	{
-		// no movement allowed
 		return;
 	}
-	// right
-	const FRotator Rotation = Controller->GetControlRotation();
-	const FRotator YawRotation(0, Rotation.Yaw, 0);
+	const FVector2D LookValue = Value.Get<FVector2D>();
 
-	// right vector 
-	const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-	AddMovementInput(Direction, AxisValue);
+	if (LookValue.X != 0.f)
+	{
+		AddControllerYawInput(LookValue.X);
+	}
+
+	if (LookValue.Y != 0.f)
+	{
+		AddControllerPitchInput(LookValue.Y);
+	}
 }
 
-void ASBPlayerCharacter::BeginSprint()
+void ASBPlayerCharacter::OnJump(const FInputActionValue& Value)
 {
-	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
+	bool bJump = Value.Get<bool>();
+	if (bJump)
+	{
+		Jump();
+	}
+	else
+	{
+		StopJumping();
+	}
 }
 
-void ASBPlayerCharacter::EndSprint()
+void ASBPlayerCharacter::OnCrouch(const FInputActionValue& Value)
 {
-	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	bool bCrouch = Value.Get<bool>();
+	if (bCrouch)
+	{
+		Crouch();
+	}
+	else
+	{
+		UnCrouch();
+	}
 }
 
-void ASBPlayerCharacter::BeginCrouch()
+void ASBPlayerCharacter::OnSprint(const FInputActionValue& Value)
 {
-	Crouch();
-}
-
-void ASBPlayerCharacter::EndCrouch()
-{
-	UnCrouch();
-}
-
-void ASBPlayerCharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
+	bool bSprint = Value.Get<bool>();
+	if (bSprint)
+	{
+		GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
+	}
+	else
+	{
+		GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	}
 }
 
 void ASBPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	check(InputMapping);
+	check(InputActions);
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer());
+	Subsystem->ClearAllMappings();
+	Subsystem->AddMappingContext(InputMapping, 0);
 
-	PlayerInputComponent->BindAxis("MoveForward", this, &ASBPlayerCharacter::MoveForward);
-	PlayerInputComponent->BindAxis("MoveRight", this, &ASBPlayerCharacter::MoveRight);
-	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
-	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
-
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
-	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
-	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &ASBPlayerCharacter::BeginCrouch);
-	PlayerInputComponent->BindAction("Crouch", IE_Released, this, &ASBPlayerCharacter::EndCrouch);
-	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &ASBPlayerCharacter::BeginSprint);
-	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &ASBPlayerCharacter::EndSprint);
+	UEnhancedInputComponent* PEI = Cast<UEnhancedInputComponent>(PlayerInputComponent);
+	PEI->BindAction(InputActions->MoveAction, ETriggerEvent::Triggered, this, &ASBPlayerCharacter::Move);
+	PEI->BindAction(InputActions->LookAction, ETriggerEvent::Triggered, this, &ASBPlayerCharacter::Look);
+	PEI->BindAction(InputActions->JumpAction, ETriggerEvent::Started, this, &ASBPlayerCharacter::OnJump);
+	PEI->BindAction(InputActions->JumpAction, ETriggerEvent::Completed, this, &ASBPlayerCharacter::OnJump);
+	PEI->BindAction(InputActions->CrouchAction, ETriggerEvent::Started, this, &ASBPlayerCharacter::OnCrouch);
+	PEI->BindAction(InputActions->CrouchAction, ETriggerEvent::Completed, this, &ASBPlayerCharacter::OnCrouch);
+	PEI->BindAction(InputActions->SprintAction, ETriggerEvent::Started, this, &ASBPlayerCharacter::OnSprint);
+	PEI->BindAction(InputActions->SprintAction, ETriggerEvent::Completed, this, &ASBPlayerCharacter::OnSprint);
 
 }
 

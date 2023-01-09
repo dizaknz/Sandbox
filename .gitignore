@@ -70,3 +70,7 @@ Content/AnimStarterPack
 .vscode/
 *.code-workspace
 Makefile
+.vsconfig
+
+Content/Maps/MountainMap*
+Platforms
