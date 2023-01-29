@@ -77,4 +77,5 @@ Platforms
 Content/MSPresets
 Content/Megascans
 Content/StarterContent
-
+*.Backup
+Content/Vehicles/*/Meshes
