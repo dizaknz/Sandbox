@@ -7,7 +7,7 @@
 #include "EnhancedInput/Public/EnhancedInputSubsystems.h"
 #include "EnhancedInput/Public/InputActionValue.h"
 #include "EnhancedInput/Public/EnhancedInputComponent.h"
-#include "InputActionData.h"
+#include "Characters/InputActionData.h"
 
 ASBPlayerCharacter::ASBPlayerCharacter()
 {
