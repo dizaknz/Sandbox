@@ -1,4 +1,4 @@
-#include "SBPlayerCharacter.h"
+#include "Characters/SBPlayerCharacter.h"
 
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
