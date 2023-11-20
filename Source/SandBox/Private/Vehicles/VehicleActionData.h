@@ -6,7 +6,7 @@
 #include "VehicleActionData.generated.h"
 
 /**
- * Character input actions
+ * Vehcile input actions
  */
 UCLASS()
 class UVehicleActionData : public UDataAsset
