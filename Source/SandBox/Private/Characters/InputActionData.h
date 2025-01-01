@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "EnhancedInput/Public/InputAction.h"
+#include "InputAction.h"
 #include "InputActionData.generated.h"
 
 /**

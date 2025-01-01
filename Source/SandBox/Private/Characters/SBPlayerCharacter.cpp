@@ -3,10 +3,10 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "EnhancedInput/Public/InputMappingContext.h"
-#include "EnhancedInput/Public/EnhancedInputSubsystems.h"
-#include "EnhancedInput/Public/InputActionValue.h"
-#include "EnhancedInput/Public/EnhancedInputComponent.h"
+#include "InputMappingContext.h"
+#include "EnhancedInputSubsystems.h"
+#include "InputActionValue.h"
+#include "EnhancedInputComponent.h"
 #include "Characters/InputActionData.h"
 
 ASBPlayerCharacter::ASBPlayerCharacter()
@@ -143,11 +143,9 @@ void ASBPlayerCharacter::OnSprint(const FInputActionValue& Value)
 	if (bSprint)
 	{
 		GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
+		return;
 	}
-	else
-	{
-		GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
-	}
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 }
 
 void ASBPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

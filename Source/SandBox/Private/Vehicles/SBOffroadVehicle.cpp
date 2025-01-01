@@ -5,10 +5,10 @@
 #include <GameFramework/SpringArmComponent.h>
 #include <Camera/CameraComponent.h>
 #include <ChaosVehicleMovementComponent.h>
-#include <EnhancedInput/Public/InputMappingContext.h>
-#include <EnhancedInput/Public/EnhancedInputSubsystems.h>
-#include <EnhancedInput/Public/InputActionValue.h>
-#include <EnhancedInput/Public/EnhancedInputComponent.h>
+#include <InputMappingContext.h>
+#include <EnhancedInputSubsystems.h>
+#include <InputActionValue.h>
+#include <EnhancedInputComponent.h>
 #include <Components/WidgetComponent.h>
 
 ASBOffroadVehicle::ASBOffroadVehicle()
@@ -87,7 +87,6 @@ void ASBOffroadVehicle::OnThrottle(const FInputActionValue& Value)
 	UE_LOG(LogVehicles, Verbose, TEXT("On throttle: %f"), Value.GetMagnitude());
 
 	GetVehicleMovementComponent()->SetThrottleInput(Throttle);
-	//UpdateDisplayState();
 
 }
 
@@ -106,7 +105,6 @@ void ASBOffroadVehicle::OnBrake(const FInputActionValue& Value)
 	}
 
 	GetVehicleMovementComponent()->SetBrakeInput(fBrake);
-	//UpdateDisplayState();
 
 }
 
@@ -117,7 +115,6 @@ void ASBOffroadVehicle::OnHandbrake(const FInputActionValue& Value)
 	bool bHandbrake = Value.Get<bool>();
 	UE_LOG(LogVehicles, Verbose, TEXT("On handbrake: %s"), bHandbrake ? TEXT("true") : TEXT("false"));
 	GetVehicleMovementComponent()->SetHandbrakeInput(bHandbrake);
-	//UpdateDisplayState();
 }
 
 void ASBOffroadVehicle::Steer(const FInputActionValue& Value)
