@@ -10,8 +10,9 @@ struct FDisplayState
 {
 	GENERATED_BODY()
 
-	float Speed;
+	int32 Speed;
 	int32 Gear;
+	int32 RPM;
 };
 
 /**
@@ -31,5 +32,8 @@ protected:
 
 	UPROPERTY(meta=(BindWidget))
 	class UTextBlock* CurrentGear;
+	
+	UPROPERTY(meta=(BindWidget))
+	class UTextBlock* CurrentRPM;
 	
 };

@@ -5,6 +5,7 @@
 #include <GameFramework/SpringArmComponent.h>
 #include <Camera/CameraComponent.h>
 #include <ChaosVehicleMovementComponent.h>
+#include <ChaosWheeledVehicleMovementComponent.h>
 #include <InputMappingContext.h>
 #include <EnhancedInputSubsystems.h>
 #include <InputActionValue.h>
@@ -17,15 +18,16 @@ ASBOffroadVehicle::ASBOffroadVehicle()
 		FVector(0.0f, 0.0f, -90.0f),
 		FQuat(FRotator(0.0f, -90.0f, 0.0f)));
 
-	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
+	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("Offroad Spring Arm"));
 	SpringArm->SetupAttachment(GetMesh());
+
 	// TODO: set in-car view, external-view
 	SpringArm->TargetArmLength = 450;
 	SpringArm->SocketOffset = FVector(0.0f, 0.0f, 150.0f);
-	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Offroad View Camera"));
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 
-	DisplayWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("DisplayWidget"));
+	DisplayWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("Offroad Display Widget"));
 	DisplayWidgetComponent->AttachToComponent(GetMesh(), FAttachmentTransformRules::KeepRelativeTransform);
 
 	// set defaults for 4WD offroad vehicle
@@ -133,6 +135,7 @@ void ASBOffroadVehicle::LookAround(const FInputActionValue& Value)
 	ViewRotator.Yaw = LookValue.X;
 	ViewRotator.Pitch = LookValue.Y;
 
+	check(SpringArm);
 	SpringArm->AddRelativeRotation(ViewRotator);
 }
 
@@ -141,16 +144,15 @@ void ASBOffroadVehicle::OnInputChange(const FInputActionValue& Value)
 	UpdateDisplayState();
 }
 
-float ASBOffroadVehicle::GetCurrentSpeedKPH()
+int32 ASBOffroadVehicle::GetCurrentSpeedKPH()
 {
-	return GetVehicleMovementComponent()->GetForwardSpeedMPH() * 1.60934f;
+	return int32(GetVehicleMovementComponent()->GetForwardSpeedMPH() * 1.60934f);
 }
 
 void ASBOffroadVehicle::UpdateDisplayState()
 {
 	float SpeedKPH = GetCurrentSpeedKPH();
 	int32 Gear = GetVehicleMovementComponent()->GetCurrentGear();
-
 	if (SpeedKPH != CurrentSpeed || Gear != CurrentGear)
 	{
 		CurrentSpeed = SpeedKPH;
@@ -158,6 +160,13 @@ void ASBOffroadVehicle::UpdateDisplayState()
 		FDisplayState Display;
 		Display.Speed = CurrentSpeed;
 		Display.Gear = CurrentGear;
+		Display.RPM = -1;
+		TObjectPtr<UChaosWheeledVehicleMovementComponent> WheeledComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent());
+		if (WheeledComp)
+		{
+			Display.RPM = int32(WheeledComp->GetEngineRotationSpeed());
+		}
+
 		DisplayStateChange.ExecuteIfBound(Display);
 	}
 }
@@ -200,4 +209,17 @@ void ASBOffroadVehicle::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 
+}
+
+void ASBOffroadVehicle::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (IsValid(DisplayWidgetClass))
+	{
+		DisplayWidgetComponent->SetWidgetClass(DisplayWidgetClass);
+		DisplayWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
+		DisplayWidgetComponent->InitWidget();
+		DisplayWidgetComponent->SetVisibility(true);
+	}
 }

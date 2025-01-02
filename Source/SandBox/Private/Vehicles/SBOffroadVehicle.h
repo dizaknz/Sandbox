@@ -21,6 +21,7 @@ public:
 	ASBOffroadVehicle();
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void OnConstruction(const FTransform& Transform) override;
+	virtual void BeginPlay() override;
 
 protected:
 	void OnThrottle(const FInputActionValue& Value);
@@ -31,7 +32,7 @@ protected:
 	void OnInputChange(const FInputActionValue& Value);
 
 private:
-	float GetCurrentSpeedKPH();
+	int32 GetCurrentSpeedKPH();
 	void UpdateDisplayState();
 
 	UFUNCTION()
@@ -53,7 +54,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Offroad Vehicle")
 	float MaxOffroadSpeedKPH;
 
-	UPROPERTY(VisibleAnywhere, Category = "Display")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Vehicle Display")
+	TSubclassOf<class USBVehicleDisplayWidget> DisplayWidgetClass;
+
+	UPROPERTY(VisibleAnywhere, Category = "Vehicle Display")
 	TObjectPtr<class UWidgetComponent> DisplayWidgetComponent;
 
 	FOnDisplayStateChange DisplayStateChange;
