@@ -1,6 +1,6 @@
 # SandBox
 
-SandBox of UE4 demos covering game play.
+SandBox of UE5 demos covering game play.
 
 ## Art assests
 
