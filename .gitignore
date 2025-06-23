@@ -72,10 +72,16 @@ Content/AnimStarterPack
 Makefile
 .vsconfig
 
-Content/Maps/MountainMap*
+
 Platforms
-Content/MSPresets
+Content/Characters
+Content/Maps
+Content/Materials
 Content/Megascans
+Content/MSPresets
+Content/Orbs
 Content/StarterContent
+Content/Terrain
+Content/Vehicles
 *.Backup
 Content/Vehicles/*/Meshes
