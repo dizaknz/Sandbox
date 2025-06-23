@@ -2,12 +2,13 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Core/SBTeamCharacter.h"
 #include "SBPlayerCharacter.generated.h"
 
 struct FInputActionValue;
 
 UCLASS(config = Game)
-class ASBPlayerCharacter : public ACharacter
+class ASBPlayerCharacter : public ASBTeamCharacter
 {
 	GENERATED_BODY()
 

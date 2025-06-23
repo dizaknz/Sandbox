@@ -2,17 +2,20 @@
 
 #include "CoreMinimal.h"
 #include "WheeledVehiclePawn.h"
+#include "ChaosWheeledVehicleMovementComponent.h"
 #include "SBVehicleDisplayWidget.h"
+#include "Core/SBTeamCharacter.h"
+
 #include "SBOffroadVehicle.generated.h"
 
 struct FInputActionValue;
 
-DECLARE_DYNAMIC_DELEGATE_OneParam(FOnDisplayStateChange, const FDisplayState&, DisplayState);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDisplayStateChange, const FDisplayState&, DisplayState);
 
 /**
  * Offroad Vehicle
  */
-UCLASS()
+UCLASS(Abstract)
 class ASBOffroadVehicle : public AWheeledVehiclePawn
 {
 	GENERATED_BODY()
@@ -23,48 +26,42 @@ public:
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void BeginPlay() override;
 
+	/** Read only */
+	FORCEINLINE const TObjectPtr<UChaosWheeledVehicleMovementComponent>& GetOffroadMovementComponent() const
+	{ 
+		return OffroadMovementComponent;
+	}
+
 protected:
 	void OnThrottle(const FInputActionValue& Value);
 	void OnBrake(const FInputActionValue& Value);
 	void OnHandbrake(const FInputActionValue& Value);
 	void Steer(const FInputActionValue& Value);
 	void LookAround(const FInputActionValue& Value);
-	void OnInputChange(const FInputActionValue& Value);
+
+	UFUNCTION(BlueprintCallable)
+	void ResetVehicle(const FInputActionValue& Value);
 
 private:
-	int32 GetCurrentSpeedKPH();
 	void UpdateDisplayState();
 
-	UFUNCTION()
-	void OnDisplayStateChange(const FDisplayState& DisplayState);
-
-protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<class USpringArmComponent> SpringArm;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<class UCameraComponent> Camera;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Vehicle Input")
-	TObjectPtr<class UInputMappingContext> VehicleInputMapping;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Vehicle Input")
-	TObjectPtr<class UVehicleActionData> VehicleActions;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Offroad Vehicle")
-	float MaxOffroadSpeedKPH;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Vehicle Display")
-	TSubclassOf<class USBVehicleDisplayWidget> DisplayWidgetClass;
-
-	UPROPERTY(VisibleAnywhere, Category = "Vehicle Display")
-	TObjectPtr<class UWidgetComponent> DisplayWidgetComponent;
-
+public:
+	UPROPERTY(BlueprintAssignable, Category = "Display State")
 	FOnDisplayStateChange DisplayStateChange;
 
-private:
-	// vehicle state
-	float CurrentSpeed = -1.0f;
-	int32 CurrentGear  = -1;
-	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle")
+	bool bSpeedInKph = true;
+
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle")
+	TObjectPtr<class USpringArmComponent> SpringArm;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle")
+	TObjectPtr<class UCameraComponent> Camera;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Vehicle|Input")
+	TObjectPtr<class UVehicleActionData> VehicleActions;
+
+	TObjectPtr<UChaosWheeledVehicleMovementComponent> OffroadMovementComponent;
+
 };

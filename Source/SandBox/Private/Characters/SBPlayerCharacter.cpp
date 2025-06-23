@@ -150,6 +150,7 @@ void ASBPlayerCharacter::OnSprint(const FInputActionValue& Value)
 
 void ASBPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
 	check(InputMapping);
 	check(InputActions);
 	APlayerController* PC = Cast<APlayerController>(GetController());

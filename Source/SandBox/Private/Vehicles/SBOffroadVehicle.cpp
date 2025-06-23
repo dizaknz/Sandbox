@@ -5,12 +5,10 @@
 #include <GameFramework/SpringArmComponent.h>
 #include <Camera/CameraComponent.h>
 #include <ChaosVehicleMovementComponent.h>
-#include <ChaosWheeledVehicleMovementComponent.h>
 #include <InputMappingContext.h>
 #include <EnhancedInputSubsystems.h>
 #include <InputActionValue.h>
 #include <EnhancedInputComponent.h>
-#include <Components/WidgetComponent.h>
 
 ASBOffroadVehicle::ASBOffroadVehicle()
 {
@@ -27,31 +25,48 @@ ASBOffroadVehicle::ASBOffroadVehicle()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Offroad View Camera"));
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 
-	DisplayWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("Offroad Display Widget"));
-	DisplayWidgetComponent->AttachToComponent(GetMesh(), FAttachmentTransformRules::KeepRelativeTransform);
+	GetMesh()->SetSimulatePhysics(true);
+	GetMesh()->SetCollisionProfileName(FName("Vehicle"));
 
-	// set defaults for 4WD offroad vehicle
 	// TODO: create custom offroad movement component
 	//       Super(ObjectInitializer.SetDefaultSubobjectClass<UOffroadMovement>(VehicleComponentName))
 	// UWheeledVehicleMovementComponent4W
-	UChaosVehicleMovementComponent * OffroadMovementComponent = GetVehicleMovementComponent();
+	// Configure the car mesh
 
-	// Set sane defaults before BP overwrites:
-	OffroadMovementComponent->Mass = 1500;
+	// get the Chaos Wheeled movement component
+	OffroadMovementComponent = CastChecked<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent());
+
+	// Set sane defaults before BP overwrites
+	// chassis
+	OffroadMovementComponent->ChassisHeight = 160.0f;
 	OffroadMovementComponent->ChassisWidth = 200.0f;
-	OffroadMovementComponent->ChassisHeight = 50.0f;
-	OffroadMovementComponent->DragCoefficient = 2.0f;
-	OffroadMovementComponent->DownforceCoefficient = 10.0f;
-	OffroadMovementComponent->DragArea = 7.5f;
-	OffroadMovementComponent->SleepThreshold = 10.0f;
-	OffroadMovementComponent->SleepSlopeLimit = 0.866f;
-	OffroadMovementComponent->DownforceCoefficient = 10.0f;
+	OffroadMovementComponent->DragCoefficient = 0.1f;
+	OffroadMovementComponent->DownforceCoefficient = 0.1f;
+	OffroadMovementComponent->Mass = 1500;
+	OffroadMovementComponent->CenterOfMassOverride = FVector(0.0f, 0.0f, 75.0f);
+	OffroadMovementComponent->bEnableCenterOfMassOverride = true;
 
-	// BP overwrites per vehicle SM:
-	// bEnableCenterOfMassOverride
-	// CenterOfMassOverride
-	// InertiaTensorScale
-	
+	// wheels setup in BP
+	OffroadMovementComponent->bLegacyWheelFrictionPosition = true;
+	OffroadMovementComponent->WheelSetups.SetNum(4);
+
+
+	// engine
+	OffroadMovementComponent->EngineSetup.MaxTorque = 600.0f;
+	OffroadMovementComponent->EngineSetup.MaxRPM = 5000.0f;
+	OffroadMovementComponent->EngineSetup.EngineIdleRPM = 1200.0f;
+	OffroadMovementComponent->EngineSetup.EngineBrakeEffect = 0.05f;
+	OffroadMovementComponent->EngineSetup.EngineRevUpMOI = 5.0f;
+	OffroadMovementComponent->EngineSetup.EngineRevDownRate = 600.0f;
+
+	// differential
+	OffroadMovementComponent->DifferentialSetup.DifferentialType = EVehicleDifferential::AllWheelDrive;
+	OffroadMovementComponent->DifferentialSetup.FrontRearSplit = 0.5f;
+
+	// steering
+	OffroadMovementComponent->SteeringSetup.SteeringType = ESteeringType::AngleRatio;
+	OffroadMovementComponent->SteeringSetup.AngleRatio = 0.7f;
+
 	// TODO:
 	// Arcade mode:
 	// TorqueControl
@@ -71,14 +86,6 @@ ASBOffroadVehicle::ASBOffroadVehicle()
 	OffroadMovementComponent->EnableSelfRighting(true);
 	OffroadMovementComponent->SetRequiresControllerForInputs(true);
 	
-	// default
-	MaxOffroadSpeedKPH = 100;
-	CurrentSpeed = 0;
-	CurrentGear = 0;
-
-	// bind to display widget update
-	DisplayStateChange.BindDynamic(this, &ASBOffroadVehicle::OnDisplayStateChange);
-
 }
 
 void ASBOffroadVehicle::OnThrottle(const FInputActionValue& Value)
@@ -86,9 +93,10 @@ void ASBOffroadVehicle::OnThrottle(const FInputActionValue& Value)
 	check(Controller);
 
 	float Throttle = Value.Get<float>();
-	UE_LOG(LogVehicles, Verbose, TEXT("On throttle: %f"), Value.GetMagnitude());
+	UE_LOG(LogVehicles, Display, TEXT("On throttle: %f"), Value.GetMagnitude());
 
-	GetVehicleMovementComponent()->SetThrottleInput(Throttle);
+	OffroadMovementComponent->SetThrottleInput(Throttle);
+	UpdateDisplayState();
 
 }
 
@@ -97,16 +105,16 @@ void ASBOffroadVehicle::OnBrake(const FInputActionValue& Value)
 	check(Controller);
 	
 	float fBrake = Value.Get<float>();
-    float fThrottle = GetVehicleMovementComponent()->GetThrottleInput();
-	UE_LOG(LogVehicles, Verbose, TEXT("On brake: %f"), Value.GetMagnitude());
+    float fThrottle = OffroadMovementComponent->GetThrottleInput();
+	UE_LOG(LogVehicles, Display, TEXT("On brake: %f"), Value.GetMagnitude());
 
 	if (fBrake != 0 && fThrottle > 0)
 	{
 		// reset throttle
-		GetVehicleMovementComponent()->DecreaseThrottleInput(fThrottle);
+		OffroadMovementComponent->DecreaseThrottleInput(fThrottle);
 	}
-
-	GetVehicleMovementComponent()->SetBrakeInput(fBrake);
+	OffroadMovementComponent->SetBrakeInput(fBrake);
+	UpdateDisplayState();
 
 }
 
@@ -115,8 +123,10 @@ void ASBOffroadVehicle::OnHandbrake(const FInputActionValue& Value)
 	check(Controller);
 
 	bool bHandbrake = Value.Get<bool>();
-	UE_LOG(LogVehicles, Verbose, TEXT("On handbrake: %s"), bHandbrake ? TEXT("true") : TEXT("false"));
-	GetVehicleMovementComponent()->SetHandbrakeInput(bHandbrake);
+	UE_LOG(LogVehicles, Display, TEXT("On handbrake: %s"), bHandbrake ? TEXT("true") : TEXT("false"));
+	OffroadMovementComponent->SetHandbrakeInput(bHandbrake);
+	UpdateDisplayState();
+
 }
 
 void ASBOffroadVehicle::Steer(const FInputActionValue& Value)
@@ -124,8 +134,8 @@ void ASBOffroadVehicle::Steer(const FInputActionValue& Value)
 	check(Controller);
 
 	float SteerValue = Value.Get<float>();
-	UE_LOG(LogVehicles, Verbose, TEXT("Steering: %f"), SteerValue);
-	GetVehicleMovementComponent()->SetSteeringInput(SteerValue);
+	UE_LOG(LogVehicles, Display, TEXT("Steering: %f"), SteerValue);
+	OffroadMovementComponent->SetSteeringInput(SteerValue);
 }
 
 void ASBOffroadVehicle::LookAround(const FInputActionValue& Value)
@@ -133,76 +143,68 @@ void ASBOffroadVehicle::LookAround(const FInputActionValue& Value)
 	const FVector2D LookValue = Value.Get<FVector2D>();
 	FRotator ViewRotator;
 	ViewRotator.Yaw = LookValue.X;
-	ViewRotator.Pitch = LookValue.Y;
+	//ViewRotator.Pitch = LookValue.Y;
 
 	check(SpringArm);
 	SpringArm->AddRelativeRotation(ViewRotator);
+
 }
 
-void ASBOffroadVehicle::OnInputChange(const FInputActionValue& Value)
+void ASBOffroadVehicle::ResetVehicle(const FInputActionValue& Value)
 {
+	FVector ResetLocation = GetActorLocation();
+	FRotator ResetRotation = GetActorRotation();
+	ResetRotation.Roll = 0.0f;
+	
+	// teleport to reset spot and reset physics
+	SetActorTransform(FTransform(ResetRotation, ResetLocation, FVector::OneVector), false, nullptr, ETeleportType::TeleportPhysics);
+	GetMesh()->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+	GetMesh()->SetPhysicsLinearVelocity(FVector::ZeroVector);
 	UpdateDisplayState();
-}
 
-int32 ASBOffroadVehicle::GetCurrentSpeedKPH()
-{
-	return int32(GetVehicleMovementComponent()->GetForwardSpeedMPH() * 1.60934f);
 }
 
 void ASBOffroadVehicle::UpdateDisplayState()
 {
-	float SpeedKPH = GetCurrentSpeedKPH();
-	int32 Gear = GetVehicleMovementComponent()->GetCurrentGear();
-	if (SpeedKPH != CurrentSpeed || Gear != CurrentGear)
-	{
-		CurrentSpeed = SpeedKPH;
-		CurrentGear = Gear;
-		FDisplayState Display;
-		Display.Speed = CurrentSpeed;
-		Display.Gear = CurrentGear;
-		Display.RPM = -1;
-		TObjectPtr<UChaosWheeledVehicleMovementComponent> WheeledComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent());
-		if (WheeledComp)
-		{
-			Display.RPM = int32(WheeledComp->GetEngineRotationSpeed());
-		}
+	float Speed = OffroadMovementComponent->GetForwardSpeedMPH();
+	int32 Gear = OffroadMovementComponent->GetCurrentGear();
 
-		DisplayStateChange.ExecuteIfBound(Display);
-	}
-}
+	FDisplayState Display;
+	Display.bUseKph = bSpeedInKph;
+	Display.Speed = Speed;
+	Display.Gear = Gear;
+	Display.RPM = int32(OffroadMovementComponent->GetEngineRotationSpeed());
 
-void ASBOffroadVehicle::OnDisplayStateChange(const FDisplayState& DisplayState)
-{
-	USBVehicleDisplayWidget* DisplayWidget = Cast<USBVehicleDisplayWidget>(DisplayWidgetComponent->GetUserWidgetObject());
-	if (!IsValid(DisplayWidget))
-	{
-		return;
-	}
-	DisplayWidget->Update(DisplayState);
+	DisplayStateChange.Broadcast(Display);
 }
 
 void ASBOffroadVehicle::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
-	checkf(VehicleInputMapping, TEXT("Setup error: provide vehicle input mapping"));
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
 	checkf(VehicleActions, TEXT("Setup error: provide vehicle action data asset"));
-	APlayerController* PC = Cast<APlayerController>(GetController());
-	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer());
-	Subsystem->ClearAllMappings();
-	Subsystem->AddMappingContext(VehicleInputMapping, 0);
-
 	UEnhancedInputComponent* PEI = Cast<UEnhancedInputComponent>(PlayerInputComponent);
-	PEI->BindAction(VehicleActions->ThrottleAction, ETriggerEvent::Started, this, &ASBOffroadVehicle::OnThrottle);
+	
+	// throttle
+	PEI->BindAction(VehicleActions->ThrottleAction, ETriggerEvent::Triggered, this, &ASBOffroadVehicle::OnThrottle);
 	PEI->BindAction(VehicleActions->ThrottleAction, ETriggerEvent::Completed, this, &ASBOffroadVehicle::OnThrottle);
-	PEI->BindAction(VehicleActions->ThrottleAction, ETriggerEvent::Triggered, this, &ASBOffroadVehicle::OnInputChange);
-	PEI->BindAction(VehicleActions->BrakeAction, ETriggerEvent::Started, this, &ASBOffroadVehicle::OnBrake);
+
+	// brake
+	PEI->BindAction(VehicleActions->BrakeAction, ETriggerEvent::Triggered, this, &ASBOffroadVehicle::OnBrake);
 	PEI->BindAction(VehicleActions->BrakeAction, ETriggerEvent::Completed, this, &ASBOffroadVehicle::OnBrake);
-	PEI->BindAction(VehicleActions->BrakeAction, ETriggerEvent::Triggered, this, &ASBOffroadVehicle::OnInputChange);
+
+	// handbrake
 	PEI->BindAction(VehicleActions->HandbrakeAction, ETriggerEvent::Started, this, &ASBOffroadVehicle::OnHandbrake);
 	PEI->BindAction(VehicleActions->HandbrakeAction, ETriggerEvent::Completed, this, &ASBOffroadVehicle::OnHandbrake);
-	PEI->BindAction(VehicleActions->HandbrakeAction, ETriggerEvent::Triggered, this, &ASBOffroadVehicle::OnInputChange);
-	PEI->BindAction(VehicleActions->SteeringAction, ETriggerEvent::Started, this, &ASBOffroadVehicle::Steer);
+
+	// steer
+	PEI->BindAction(VehicleActions->SteeringAction, ETriggerEvent::Triggered, this, &ASBOffroadVehicle::Steer);
 	PEI->BindAction(VehicleActions->SteeringAction, ETriggerEvent::Completed, this, &ASBOffroadVehicle::Steer);
+
+	// look around
 	PEI->BindAction(VehicleActions->LookAroundAction, ETriggerEvent::Triggered, this, &ASBOffroadVehicle::LookAround);
+
+	// reset vehicle
+	PEI->BindAction(VehicleActions->ResetVehicleAction, ETriggerEvent::Triggered, this, &ASBOffroadVehicle::ResetVehicle);
 }
 
 void ASBOffroadVehicle::OnConstruction(const FTransform& Transform)
@@ -215,11 +217,4 @@ void ASBOffroadVehicle::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (IsValid(DisplayWidgetClass))
-	{
-		DisplayWidgetComponent->SetWidgetClass(DisplayWidgetClass);
-		DisplayWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
-		DisplayWidgetComponent->InitWidget();
-		DisplayWidgetComponent->SetVisibility(true);
-	}
 }

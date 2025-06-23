@@ -7,9 +7,10 @@
 /**
  * 
  */
-UCLASS()
+UCLASS(Abstract)
 class USBOffroadVehicleRearWheel : public UChaosVehicleWheel
 {
 	GENERATED_BODY()
 	
+	USBOffroadVehicleRearWheel();
 };

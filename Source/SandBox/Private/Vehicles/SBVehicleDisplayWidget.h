@@ -10,8 +10,16 @@ struct FDisplayState
 {
 	GENERATED_BODY()
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Display")
+	bool bUseKph = true;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Display")
 	int32 Speed;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Display")
 	int32 Gear;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Vehicle|Display")
 	int32 RPM;
 };
 
@@ -29,6 +37,9 @@ public:
 protected:
 	UPROPERTY(meta=(BindWidget))
 	class UTextBlock* CurrentSpeed;
+
+	UPROPERTY(meta=(BindWidget))
+	class UTextBlock* SpeedUnit;
 
 	UPROPERTY(meta=(BindWidget))
 	class UTextBlock* CurrentGear;
