@@ -1,34 +1,34 @@
-#include "SBTeamCharacter.h"
+#include "SBTeamVehicle.h"
 #include "Core/SBTeamUtils.h"
 
-ASBTeamCharacter::ASBTeamCharacter()
+ASBTeamVehicle::ASBTeamVehicle()
 {
 	PrimaryActorTick.bCanEverTick = true;
 }
 
-void ASBTeamCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void ASBTeamVehicle::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
 
-FGenericTeamId ASBTeamCharacter::GetGenericTeamId() const
+FGenericTeamId ASBTeamVehicle::GetGenericTeamId() const
 {
 	return TeamID;
 }
 	
-bool ASBTeamCharacter::CanBeSeenOverride_Implementation()
+bool ASBTeamVehicle::CanBeSeenOverride_Implementation()
 {
 	return true;
 }
 	
-UAISense_Sight::EVisibilityResult ASBTeamCharacter::CanBeSeenFrom(
+UAISense_Sight::EVisibilityResult ASBTeamVehicle::CanBeSeenFrom(
 	const FCanBeSeenFromContext& Context,
 	FVector& OutSeenLocation,
 	int32& OutChecksPerformed,
 	int32& OutAsyncCheckRequested,
 	float& OutSightStrength,
 	int32* UserData,
-	const FOnPendingVisibilityQueryProcessedDelegate* Delegate)	
+	const FOnPendingVisibilityQueryProcessedDelegate* Delegate)		
 {
 	if (!CanBeSeenOverride())
 	{
@@ -42,5 +42,5 @@ UAISense_Sight::EVisibilityResult ASBTeamCharacter::CanBeSeenFrom(
 		OutAsyncCheckRequested,
 		OutSightStrength,
 		UserData,
-		Delegate);
+		Delegate);	
 }

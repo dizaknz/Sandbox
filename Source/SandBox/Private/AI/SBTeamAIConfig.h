@@ -17,20 +17,20 @@ struct FTaggedBehaviorTree
 	FGameplayTag StateTag;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UBehaviorTree* BehaviorTree = nullptr;
+ 	TObjectPtr<UBehaviorTree> BehaviorTree = nullptr;
 };
 
 /**
  * Enemy AI Config
  */
 UCLASS()
-class USBEnemyConfig : public UDataAsset
+class USBTeamAIConfig : public UDataAsset
 {
 	GENERATED_BODY()
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Base Logic")
-	UBehaviorTree* BaseBehavior = nullptr;
+	TObjectPtr<UBehaviorTree> BaseBehavior = nullptr;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "State Logic")
 	TArray<FTaggedBehaviorTree> DynamicBehaviors;

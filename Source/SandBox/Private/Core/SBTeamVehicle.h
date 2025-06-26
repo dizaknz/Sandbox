@@ -1,25 +1,23 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Character.h"
+#include "WheeledVehiclePawn.h"
 #include "GenericTeamAgentInterface.h"
 #include "Perception/AISightTargetInterface.h"
 #include "Perception/AIPerceptionSystem.h"
 
-#include "SBTeamCharacter.generated.h"
-
-// https://dev.epicgames.com/community/learning/tutorials/z0G7/how-to-setup-your-ai-the-right-way-unreal-engine
+#include "SBTeamVehicle.generated.h"
 
 /**
- * Team Character that implements the team agent interface
+ * Team Vehicle that implements the team agent interface
  */
 UCLASS(Abstract)
-class ASBTeamCharacter : public ACharacter, public IGenericTeamAgentInterface, public IAISightTargetInterface
+class ASBTeamVehicle : public AWheeledVehiclePawn, public IGenericTeamAgentInterface, public IAISightTargetInterface
 {
 	GENERATED_BODY()
 
 public:
-	ASBTeamCharacter();
+	ASBTeamVehicle();
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	 

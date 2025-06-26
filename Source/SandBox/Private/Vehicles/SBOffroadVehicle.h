@@ -1,10 +1,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "WheeledVehiclePawn.h"
 #include "ChaosWheeledVehicleMovementComponent.h"
 #include "SBVehicleDisplayWidget.h"
-#include "Core/SBTeamCharacter.h"
+#include "Core/SBTeamVehicle.h"
 
 #include "SBOffroadVehicle.generated.h"
 
@@ -16,7 +15,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDisplayStateChange, const FDispla
  * Offroad Vehicle
  */
 UCLASS(Abstract)
-class ASBOffroadVehicle : public AWheeledVehiclePawn
+class ASBOffroadVehicle : public ASBTeamVehicle
 {
 	GENERATED_BODY()
 
